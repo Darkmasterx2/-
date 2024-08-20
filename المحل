@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تتبع المالي</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; direction: rtl; text-align: right; }
+        input, select, button { margin: 5px 0; padding: 5px; width: 100%; }
+        button { margin: 10px 0; padding: 10px; background-color: #4CAF50; color: white; border: none; cursor: pointer; }
+        .section { margin-top: 20px; }
+        ul { list-style-type: none; padding: 0; }
+    </style>
+</head>
+<body>
+    <h1>تتبع المالي</h1>
+
+    <div class="section">
+        <h3>إضافة إدخال</h3>
+        <input type="text" id="item" placeholder="الوصف (مثل: وصلة)" />
+        <input type="number" id="price" placeholder="السعر" />
+        <select id="category">
+            <option value="sale">بيع</option>
+            <option value="machine">مكنة</option>
+        </select>
+        <select id="status" disabled>
+            <option value="paid">مسدد</option>
+            <option value="unpaid">غير مسدد</option>
+        </select>
+        <button onclick="addEntry()">إضافة إدخال</button>
+    </div>
+
+    <div class="section">
+        <h3>الإدخالات</h3>
+        <ul id="entries"></ul>
+    </div>
+
+    <div class="section">
+        <h3>المجاميع</h3>
+        <p>مجموع البيع: <span id="totalSales">0</span></p>
+        <p>مجموع المكنة (مستحق): <span id="totalMachineDue">0</span></p>
+        <p>مجموع المكنة (كاش): <span id="totalMachineCash">0</span></p>
+        <p>المجموع الكلي (مستحق): <span id="totalOverallDue">0</span></p>
+        <p>المجموع الكلي (كاش): <span id="totalOverallCash">0</span></p>
+    </div>
+
+    <div class="section">
+        <button onclick="copyEntriesAndTotals()">نسخ الإدخالات والمجاميع</button>
+    </div>
+
+    <script>
+        let entries = [];
+
+        function addEntry() {
+            const item = document.getElementById('item').value;
+            const price = parseFloat(document.getElementById('price').value);
+            const category = document.getElementById('category').value;
+            const status = document.getElementById('status').value;
+
+            if (item && price && !isNaN(price)) {
+                entries.push({ item, price, category, status });
+                updateEntries();
+                calculateTotals();
+            } else {
+                alert('يرجى ملء جميع الحقول ببيانات صحيحة');
+            }
+        }
+
+        document.getElementById('category').addEventListener('change', function() {
+            const statusSelect = document.getElementById('status');
+            if (this.value === 'machine') {
+                statusSelect.disabled = false;
+            } else {
+                statusSelect.disabled = true;
+                statusSelect.value = 'paid';
+            }
+        });
+
+        function updateEntries() {
+            const entriesList = document.getElementById('entries');
+            entriesList.innerHTML = '';
+            entries.forEach((entry, index) => {
+                const li = document.createElement('li');
+                li.textContent = `${entry.item} - ${entry.price} - ${entry.category === 'sale' ? 'بيع' : 'مكنة'} - ${entry.status === 'paid' ? 'مسدد' : 'غير مسدد'}`;
+                li.addEventListener('click', () => editEntry(index));
+                entriesList.appendChild(li);
+            });
+        }
+
+        function editEntry(index) {
+            const entry = entries[index];
+            const newItem = prompt("تعديل الوصف:", entry.item);
+            const newPrice = parseFloat(prompt("تعديل السعر:", entry.price));
+            const newCategory = prompt("تعديل الفئة (بيع أو مكنة):", entry.category === 'sale' ? 'بيع' : 'مكنة');
+            const newStatus = newCategory === 'مكنة' ? prompt("تعديل الحالة (مسدد أو غير مسدد):", entry.status === 'paid' ? 'مسدد' : 'غير مسدد') : 'مسدد';
+
+            if (newItem && !isNaN(newPrice)) {
+                entries[index] = {
+                    item: newItem,
+                    price: newPrice,
+                    category: newCategory === 'بيع' ? 'sale' : 'machine',
+                    status: newStatus === 'مسدد' ? 'paid' : 'unpaid'
+                };
+                updateEntries();
+                calculateTotals();
+            } else {
+                alert('يرجى إدخال بيانات صحيحة');
+            }
+        }
+
+        function calculateTotals() {
+            let totalSales = 0;
+            let totalMachineDue = 0;
+            let totalMachineCash = 0;
+
+            entries.forEach(entry => {
+                if (entry.category === 'sale') {
+                    totalSales += entry.price;
+                } else if (entry.category === 'machine') {
+                    totalMachineDue += entry.price;
+                    if (entry.status === 'paid') {
+                        totalMachineCash += entry.price;
+                    }
+                }
+            });
+
+            document.getElementById('totalSales').textContent = totalSales;
+            document.getElementById('totalMachineDue').textContent = totalMachineDue;
+            document.getElementById('totalMachineCash').textContent = totalMachineCash;
+            document.getElementById('totalOverallDue').textContent = totalSales + totalMachineDue;
+            document.getElementById('totalOverallCash').textContent = totalSales + totalMachineCash;
+        }
+
+        function copyEntriesAndTotals() {
+            let entriesText = entries.map(entry => `${entry.item} - ${entry.price} - ${entry.category === 'sale' ? 'بيع' : 'مكنة'} - ${entry.status === 'paid' ? 'مسدد' : 'غير مسدد'}`).join('\n');
+            let totalsText = `
+                مجموع البيع: ${document.getElementById('totalSales').textContent}
+                مجموع المكنة (مستحق): ${document.getElementById('totalMachineDue').textContent}
+                مجموع المكنة (كاش): ${document.getElementById('totalMachineCash').textContent}
+                المجموع الكلي (مستحق): ${document.getElementById('totalOverallDue').textContent}
+                المجموع الكلي (كاش): ${document.getElementById('totalOverallCash').textContent}
+            `;
+            let fullText = `${entriesText}\n\n${totalsText}`;
+            navigator.clipboard.writeText(fullText).then(() => {
+                alert('تم نسخ الإدخالات والمجاميع!');
+            });
+        }
+    </script>
+</body>
+</html>
